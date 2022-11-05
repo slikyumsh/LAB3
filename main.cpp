@@ -451,6 +451,224 @@ Matrix& operator >> (istream& in, Matrix& t){
     return t;
 }
 
+class UnitMatrix : public Matrix{
+public:
+  UnitMatrix(int n) : Matrix(n, n){
+  if (n <= 0)
+  throw invalid_argument("invalid length");
+  vector<vector<double>> result(n, vector<double> (n, 0));
+  for (int i = 0; i < n; i++)
+    result[i][i] = 1;
+  matrix = result;
+  }
+};
+
+class DiagonalMatrix : public Matrix{
+public:
+  DiagonalMatrix(int n, double c) : Matrix(n, n){
+  if (n <= 0)
+   throw invalid_argument("invalid length");
+  vector<vector<double>> result (n, vector<double> (n, 0));
+  for (int i = 0; i < n; i++)
+    result[i][i] = c;
+  matrix = result;
+  }
+};
+
+
+class UpperTriangleMatrix : Matrix{
+  public:
+    UpperTriangleMatrix(vector<vector<double>> vec) : Matrix(vec){
+      set<int> st;
+      for (int i = 0; i < vec.size(); i++){
+        st.insert(vec[i].size());
+    }
+
+    if (st.size() != 1)
+      throw invalid_argument("Invalid matrix");
+
+    int n = vec.size();
+    int m;
+    for (auto x: st)
+      m = x;
+    if (n != m)
+      throw invalid_argument("Not square");
+
+    for (int i = 1; i < n; i++){
+      for (int j = 0; j < i; j++){
+        if (vec[i][j] != 0)
+          throw invalid_argument("Not triangle matrix");
+      }
+    }
+  matrix = vec;
+  }
+};
+
+class DownTriangleMatrix : Matrix{
+  public:
+  DownTriangleMatrix(vector<vector<double>> vec) : Matrix(vec){
+  set<int> st;
+  for (int i = 0; i < vec.size(); i++){
+    st.insert(vec[i].size());
+  }
+
+  if (st.size() != 1)
+    throw invalid_argument("Invalid matrix");
+
+  int n = vec.size();
+  int m;
+  for (auto x: st)
+  m = x;
+  if (n != m)
+    throw invalid_argument("Not square");
+  for (int j = 1; j < n; j++){
+    for (int i = 0; i < j; i++){
+      if (vec[i][j] != 0)
+        throw invalid_argument("Not triangle matrix");
+      }
+    }
+  matrix = vec;
+  }
+};
+class SimmetricMatrix : Matrix{
+  public:
+  SimmetricMatrix(vector<vector<double>> vec) : Matrix(vec){
+    set<int> st;
+  for (int i = 0; i < vec.size(); i++){
+    st.insert(vec[i].size());
+  }
+  if (st.size() != 1)
+    throw invalid_argument("Invalid matrix");
+  int n = vec.size();
+  int m;
+  for (auto x: st)
+    m = x;
+  if (n != m)
+    throw invalid_argument("Not square");
+  for (int j = 1; j < n; j++){
+    for (int i = 0; i < j; i++){
+      if (vec[i][j] != 0)
+        throw invalid_argument("Not triangle matrix");
+    }
+  }
+    matrix = vec;
+  }
+};
+
+
+void inversion(vector<vector<double>>& A, int N)
+{
+    double temp;
+
+    vector<vector<double>> E(N, vector<double>(N,0));
+
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
+        {
+            E[i][j] = 0.0;
+
+            if (i == j)
+                E[i][j] = 1.0;
+        }
+
+    for (int k = 0; k < N; k++)
+    {
+        temp = A[k][k];
+
+        for (int j = 0; j < N; j++)
+        {
+            A[k][j] /= temp;
+            E[k][j] /= temp;
+        }
+
+        for (int i = k + 1; i < N; i++)
+        {
+            temp = A[i][k];
+
+            for (int j = 0; j < N; j++)
+            {
+                A[i][j] -= A[k][j] * temp;
+                E[i][j] -= E[k][j] * temp;
+            }
+        }
+    }
+
+    for (int k = N - 1; k > 0; k--)
+    {
+        for (int i = k - 1; i >= 0; i--)
+        {
+            temp = A[i][k];
+
+            for (int j = 0; j < N; j++)
+            {
+                A[i][j] -= A[k][j] * temp;
+                E[i][j] -= E[k][j] * temp;
+            }
+        }
+    }
+
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
+            A[i][j] = E[i][j];
+
+
+}
+
+Matrix InvertMatrix(Matrix t){
+    int n = t.GetN();
+    int m = t.GetM();
+    if (n != m)
+        throw invalid_argument("Not square matrix");
+    if (t.Gauss()==0)
+        throw invalid_argument("Determinant zero");
+    vector<vector<double>> res = t.GetMatrix();
+    inversion(res,n);
+    return Matrix(res);
+}
+
+void WriteToBinary(Matrix& t, string str){
+	ofstream file(str, ios::out | ios::binary);
+	if (!file)
+		throw runtime_error("Can't open file");
+	file.seekp(0);
+	int n = t.GetN();
+	int m = t.GetM();
+	vector<vector<double>> vec = t.GetMatrix();
+	file.write((char*)&n, sizeof(int));
+	file.write((char*)&m, sizeof(int));
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++)
+			file.write((char*)&vec[i][j], sizeof(double));
+	file.close();
+}
+
+void ReadFromBinary(Matrix& t, string str){
+	ifstream file(str, ios::binary | ios::in);
+	if (!file)
+		throw runtime_error("Can't open file");
+
+	file.seekg(0, ios::end);
+	int file_sz = file.tellg();
+
+	int bin_sz = file_sz - 2 * sizeof(int);
+	file.seekg(bin_sz, ios::beg);
+
+	int n = t.GetN();
+	int m = t.GetM();
+
+	file.seekg(0, ios::beg);
+	file.read((char*)&n, sizeof(int));
+	file.read((char*)&m, sizeof(int));
+
+	vector<vector<double>> vec(n, vector<double> (m, 0));
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < m; j++)
+			file.read((char*)&vec[i][j], sizeof(double));
+	}
+  t.SetCoef(vec);
+	file.close();
+}
+
 int main(){
     return 0;
 }
