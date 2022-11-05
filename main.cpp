@@ -669,6 +669,200 @@ void ReadFromBinary(Matrix& t, string str){
 	file.close();
 }
 
+class PCA{
+private:
+    Matrix matrix;
+
+public:
+
+    PCA (Matrix a){
+        vector<vector<double>> c = a.GetMatrix();
+        matrix.SetCoef(c);
+    }
+
+    Matrix GetMatrix(){
+        return matrix;
+    }
+    void center(){
+        vector<vector<double>> c = matrix.GetMatrix();
+        int n = matrix.GetN();
+        int m = matrix.GetM();
+        for (int j = 0; j < m; j++){
+            double mid = 0;
+            for (int i = 0; i < n; i++){
+                mid += c[i][j];
+            }
+            mid /= n;
+            for (int i = 0; i < n; i++){
+                c[i][j] -= mid;
+            }
+        }
+        matrix = Matrix(c);
+    }
+
+    void normalize(){
+        vector<vector<double>> c = matrix.GetMatrix();
+        int n = matrix.GetN();
+        int m = matrix.GetM();
+        for (int j = 0; j < m; j++){
+            double mid = 0;
+            for (int i = 0; i < n; i++){
+                mid += c[i][j];
+            }
+            mid /= n;
+            double sum = 0;
+            for (int i = 0; i < n; i++){
+                sum += (c[i][j] - mid) * (c[i][j] - mid);
+            }
+            sum /= n;
+            sum = sqrt(sum);
+             for (int i = 0; i < n; i++){
+                c[i][j] /= sum;
+            }
+        }
+        matrix = Matrix(c);
+    }
+
+    pair<Matrix, Matrix> Algo(int PC){
+        center();
+        normalize();
+
+        Matrix E(matrix.GetMatrix());
+        Matrix P;
+        Matrix T;
+        Matrix d;
+        Matrix p_trans;
+        Matrix p;
+        double diff;
+        for (int h = 0; h < PC; h++){
+            vector<vector<double>> q = E.GetColumnByNumber(h);
+            Matrix t(q);
+            int cnt = 0;
+            do{
+                Matrix r = Transposition(t);
+
+                Matrix res1 = r * E;
+                Matrix res2 = r * t;
+                double res0 = res2.GetNumber(0,0);
+                res1 / res0;
+                p = Matrix(Transposition(res1));
+
+                p / p.VectorNorma();
+                Matrix t_old(t.GetMatrix());
+                res1 = E * p;
+                p_trans = Matrix(Transposition(p));
+                res2 = p_trans * p;
+                res0 = res2.GetNumber(0,0);
+                res1 / res0;
+                t = res1;
+                Matrix res3;
+                res3 = t_old - t;
+                d = Matrix(res3.GetMatrix());
+                diff = d.VectorNorma();
+            } while (diff > EPS);
+
+            Matrix res1 = t * p_trans;
+            E = E - res1;
+
+            if (h == 0){
+                P = p;
+                T = t;
+            }
+            else{
+                P.AddMatrixColumn(p);
+                T.AddMatrixColumn(t);
+            }
+        }
+        return {P, T};
+    }
+
+    vector<double> Eigenvalues(int h){
+        auto pr = Algo(h).second;
+        Matrix trans = Transposition(pr);
+        Matrix res = trans * pr;
+        vector<vector<double>> vec = res.GetMatrix();
+        vector<double> ans;
+        for (int i = 0; i < vec.size(); i++){
+            ans.push_back(vec[i][i]);
+        }
+        return ans;
+    }
+
+    vector<double> Leverage(int h){
+        auto t = Algo(h).second;
+        vector<double> vec = Eigenvalues(h);
+        vector<vector<double>> matrix1 = t.GetMatrix();
+        vector<double> result;
+        for (int i = 0; i < t.GetN(); i++){
+            double sum = 0;
+            for(int j = 0; j < t.GetM(); j++){
+                sum += matrix1[i][j] * matrix1[i][j] * 1. / vec[j];
+            }
+            result.push_back(sum);
+        }
+        return result;
+    }
+
+    Matrix ResMatrix(int h){
+        auto p = Algo(h).first;
+        auto t = Algo(h).second;
+        auto p_trans = Transposition(p);
+        auto res1 = t * p_trans;
+        return Matrix(matrix) - res1;
+    }
+
+    vector<double> Sigma(int h){
+        auto e = ResMatrix(h);
+
+        vector<vector<double>> matrix1 = e.GetMatrix();
+        vector<double> result;
+        for (int i = 0; i < e.GetN(); i++){
+            double sum = 0;
+            for(int j = 0; j < e.GetM(); j++){
+                sum += matrix1[i][j] * matrix1[i][j];
+            }
+            result.push_back(sum);
+        }
+        return result;
+    }
+
+    double TRVP(int h){
+        auto e = ResMatrix(h);
+
+        vector<vector<double>> matrix1 = e.GetMatrix();
+        double sum = 0;
+        for (int i = 0; i < e.GetN(); i++){
+            for(int j = 0; j < e.GetM(); j++){
+                sum += matrix1[i][j] * matrix1[i][j];
+            }
+        }
+
+        return sum / (e.GetN() * e.GetM());
+    }
+
+    double ERVP(int h){
+        auto e = ResMatrix(h);
+        vector<vector<double>> matrix1 = matrix.GetMatrix();
+        double sum1 = 0;
+        for (int i = 0; i < e.GetN(); i++){
+            for(int j = 0; j < e.GetM(); j++){
+                sum1 += matrix1[i][j] * matrix1[i][j];
+            }
+        }
+
+        vector<vector<double>> matrix2 = e.GetMatrix();
+        double sum2 = 0;
+        for (int i = 0; i < e.GetN(); i++){
+            for(int j = 0; j < e.GetM(); j++){
+                sum2 += matrix2[i][j] * matrix2[i][j];
+            }
+        }
+
+        return 1 - sum2 * 1. / sum1;
+    }
+
+};
+
 int main(){
     return 0;
 }
