@@ -17,3 +17,7 @@ description: >-
 {% content-ref url="rukovodstvo-po-ekspluatacii.md" %}
 [rukovodstvo-po-ekspluatacii.md](rukovodstvo-po-ekspluatacii.md)
 {% endcontent-ref %}
+
+{% content-ref url="otchet.md" %}
+[otchet.md](otchet.md)
+{% endcontent-ref %}
