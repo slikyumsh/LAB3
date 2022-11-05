@@ -864,5 +864,61 @@ public:
 };
 
 int main(){
+    freopen("C:\\Programming_algo_struct\\DataLab5.txt", "r", stdin);
+    cout.precision(20);
+    vector<vector<double>> data;
+    int cnt = 0;
+    vector<double> line;
+    string s;
+    while (cin >> s){
+        cnt++;
+
+        for (int i = 0; i < s.size(); i++)
+            if (s[i] == ',')
+                s[i] = '.';
+
+        if (cnt % 12 != 0){
+            double c = atof(s.c_str());
+            line.push_back(c);
+        }
+        else{
+            double c = atof(s.c_str());
+            line.push_back(c);
+            data.push_back(line);
+            line.clear();
+        }
+    }
+
+    Matrix a(data);
+    PCA pca(a);
+   // pca.center();
+  //  pca.normalize();
+
+   // auto pr = pca.Algo(4);
+    //Matrix b = pca.GetMatrix();
+   // Matrix b = pr.second;
+   // vector<vector<double>> res = b.GetMatrix();
+   // cout << res.size() << endl;
+    //for (int i = 0; i < res.size(); i++){
+      //  for (int j = 0; j < res[i].size(); j++){
+      //      cout << res[i][j] << " ";
+      //  }
+       // cout << endl;
+    //}
+
+    auto e = pca.ResMatrix(4);
+    auto res = e.GetMatrix();
+    for (int i = 0; i < res.size(); i++){
+          for (int j = 0; j < res[i].size(); j++){
+              cout << res[i][j] << " ";
+          }
+         cout << endl;
+    }
+    cout << pca.ERVP(4);
+    //double sum = 0;
+   // for (int i = 0; i < res.size(); i++){
+    //    sum += res[i][2];
+    //}
+    //cout << sum/32.;
     return 0;
 }
